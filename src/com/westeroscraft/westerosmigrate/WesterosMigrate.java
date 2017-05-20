@@ -100,11 +100,11 @@ public class WesterosMigrate {
                         svc.removeWarp(warpname);
                         boolean rslt = svc.setWarp(warpname, loc, facing);
                         logger.info(String.format("setWarp(%s, %s, %s) = %b", warpname, loc, facing, rslt));
+                        rdrfile.delete();
                     }
                     else {
                         logger.info("World not found : " + worldname);
                     }
-                    rdrfile.delete();
                 } catch (IOException iox) {
                     logger.info("Error processing " + fn, iox);
                 }
