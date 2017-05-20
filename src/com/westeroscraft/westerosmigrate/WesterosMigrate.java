@@ -25,6 +25,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.nodes.Node;
 
 import io.github.nucleuspowered.nucleus.api.NucleusAPI;
+import io.github.nucleuspowered.nucleus.api.nucleusdata.Warp;
 import io.github.nucleuspowered.nucleus.api.service.NucleusWarpService;
 
 import com.flowpowered.math.vector.Vector3d;
@@ -92,10 +93,11 @@ public class WesterosMigrate {
                     Double z = (Double) vals.get("z");
                     Double yaw = (Double) vals.get("yaw");
                     Double pitch = (Double) vals.get("pitch");
-                    Optional<World> world = Sponge.getServer().loadWorld(worldname);
+                    Optional<World> world = Sponge.getServer().getWorld(worldname);
                     if (world.isPresent()) {
                         Location<World> loc = new Location<World>(world.get(), x, y, z);
                         Vector3d facing = Vector3d.createDirectionDeg(yaw, pitch);
+                        svc.removeWarp(warpname);
                         boolean rslt = svc.setWarp(warpname, loc, facing);
                         logger.info(String.format("setWarp(%s, %s, %s) = %b", warpname, loc, facing, rslt));
                     }
