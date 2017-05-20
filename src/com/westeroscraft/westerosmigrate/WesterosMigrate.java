@@ -5,21 +5,29 @@ import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.Map;
 import java.util.Optional;
 
 import org.slf4j.Logger;
+import org.spongepowered.api.Sponge;
 import org.spongepowered.api.config.ConfigDir;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.game.state.GameLoadCompleteEvent;
 import org.spongepowered.api.event.game.state.GamePostInitializationEvent;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
+import org.spongepowered.api.event.game.state.GameStartedServerEvent;
 import org.spongepowered.api.plugin.Dependency;
 import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.plugin.PluginContainer;
+import org.spongepowered.api.world.Location;
+import org.spongepowered.api.world.World;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.Node;
 
 import io.github.nucleuspowered.nucleus.api.NucleusAPI;
 import io.github.nucleuspowered.nucleus.api.service.NucleusWarpService;
 
+import com.flowpowered.math.vector.Vector3d;
 import com.google.inject.Inject;
 
 @Plugin(id = "westerosmigrate", 
@@ -58,11 +66,13 @@ public class WesterosMigrate {
 	}
 	
     @Listener
-    public void onGamePostInitialization(GamePostInitializationEvent e){
+    public void onGameStartedServer(GameStartedServerEvent e){
         Optional<NucleusWarpService> warp = NucleusAPI.getWarpService();
         
-        if (warp.isPresent()) {
-            File warpdir = new File(configDir, "warps");
+        logger.info("Migrate warps");;
+        File warpdir = new File(configDir, "warps");
+        if (warp.isPresent() && warpdir.isDirectory()) {
+            NucleusWarpService svc = warp.get();
             for (String fn : warpdir.list(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
@@ -71,10 +81,31 @@ public class WesterosMigrate {
                 })) {
                 Yaml yaml = new Yaml();
                 try {
-                    Reader rdr = new FileReader(new File(warpdir, fn));
-                    yaml.load(rdr);
+                    File rdrfile = new File(warpdir, fn);
+                    Reader rdr = new FileReader(rdrfile);
+                    Map<String, Object> vals = (Map<String, Object>) yaml.load(rdr);
                     rdr.close();
-                } catch (IOException iox) {}
+                    String warpname = (String) vals.get("name");
+                    String worldname = (String) vals.get("world");
+                    Double x = (Double) vals.get("x");
+                    Double y = (Double) vals.get("y");
+                    Double z = (Double) vals.get("z");
+                    Double yaw = (Double) vals.get("yaw");
+                    Double pitch = (Double) vals.get("pitch");
+                    Optional<World> world = Sponge.getServer().loadWorld(worldname);
+                    if (world.isPresent()) {
+                        Location<World> loc = new Location<World>(world.get(), x, y, z);
+                        Vector3d facing = Vector3d.createDirectionDeg(yaw, pitch);
+                        boolean rslt = svc.setWarp(warpname, loc, facing);
+                        logger.info(String.format("setWarp(%s, %s, %s) = %b", warpname, loc, facing, rslt));
+                    }
+                    else {
+                        logger.info("World not found : " + worldname);
+                    }
+                    rdrfile.delete();
+                } catch (IOException iox) {
+                    logger.info("Error processing " + fn, iox);
+                }
             }
         }
         
