@@ -96,10 +96,10 @@ public class WesterosMigrate {
                     Optional<World> world = Sponge.getServer().getWorld(worldname);
                     if (world.isPresent()) {
                         Location<World> loc = new Location<World>(world.get(), x, y, z);
-                        Vector3d facing = Vector3d.createDirectionDeg(pitch, yaw);
+                        Vector3d facing = new Vector3d(pitch, yaw, 0);
                         svc.removeWarp(warpname);
                         boolean rslt = svc.setWarp(warpname, loc, facing);
-                        logger.info(String.format("setWarp(%s, %s, %s) = %b", warpname, loc, facing, rslt));
+                        logger.info(String.format("setWarp(%s, %s, %s)", warpname, loc, facing));
                         rdrfile.delete();
                     }
                     else {
