@@ -32,6 +32,7 @@ import io.github.nucleuspowered.nucleus.api.nucleusdata.Warp;
 import io.github.nucleuspowered.nucleus.api.service.NucleusWarpService;
 import me.lucko.luckperms.LuckPerms;
 import me.lucko.luckperms.api.LuckPermsApi;
+import me.lucko.luckperms.api.Node.Builder;
 import me.lucko.luckperms.api.User;
 import me.lucko.luckperms.exceptions.ObjectAlreadyHasException;
 
@@ -152,32 +153,53 @@ public class WesterosMigrate {
                 		prefix = (String) info.get("prefix");
                 		suffix = (String) info.get("suffix");
                 	}
-                	User usr;
-                	if (lastname != null) {
-                		lpapi.getStorage().loadUser(UUID.fromString(key)).join();
-                		usr =  lpapi.getUser(UUID.fromString(key));
+                	UUID uuid = null;
+                	try {
+                		uuid = UUID.fromString(key);
+                	} catch (IllegalArgumentException x) {
+                        uuid = lpapi.getStorage().getUUID(key).join();
+                        if (uuid == null) {
+                        	logger.info("Unable to get UUID for " + key);
+                            continue;
+                        }
                 	}
-                	else {
-                		UUID uid = lpapi.getStorage().getUUID(key).join();
-                		lpapi.getStorage().loadUser(uid).join();
-                		usr =  lpapi.getUser(uid);
-                	}
-                	if (usr != null) {
-                		if (groupname != null) {
-                			String ngroupname = grpidmap.get(groupname);
-                			if (ngroupname != null) {
-                				me.lucko.luckperms.api.Group g = lpapi.getGroup(ngroupname);
-                				usr.addGroup(g);
-                				usr.setPrimaryGroup(ngroupname);
-                				logger.info("User " + key + " set to group " + ngroupname);
-                			}
-                			else {
-                				logger.info("Error: unknown group " + groupname);
-                			}
-                		}
-                	}
-                	else {
-                		logger.info("User " + key + " not found");
+        			String ngroupname = grpidmap.get(groupname);
+        			if (ngroupname != null) {
+        				if (lpapi.getStorage().loadUser(uuid, "null").join().booleanValue()) {
+        					User user = lpapi.getUser(uuid);
+        					// Build permission node for group
+        					me.lucko.luckperms.api.Group g = lpapi.getGroup(ngroupname);
+        					me.lucko.luckperms.api.Node n = lpapi.getNodeFactory().makeGroupNode(g).build();
+        					// Set the permission, and return true if the user didn't already have it set.
+        					if (user.hasPermission(n).asBoolean() == false) {
+        						user.setPermission(n); 
+                				logger.info("User " + user.getFriendlyName() + " added to group " + g.getName());
+        					}
+        					if (user.getPrimaryGroup().equals(ngroupname) == false) {
+        						user.setPrimaryGroup(ngroupname);
+                				logger.info("User " + user.getFriendlyName() + " set to primary group " + ngroupname);
+        					}
+        					if (prefix != null) {
+            					n = lpapi.getNodeFactory().makePrefixNode(200, prefix).build();
+            					if (user.hasPermission(n).asBoolean() == false) {
+            						user.setPermission(n);
+                    				logger.info("User " + user.getFriendlyName() + " prefix set to " + prefix);
+            					}
+        					}
+        					if (suffix != null) {
+            					n = lpapi.getNodeFactory().makePrefixNode(200, suffix).build();
+            					if (user.hasPermission(n).asBoolean() == false) {
+            						user.setPermission(n);
+                    				logger.info("User " + user.getFriendlyName() + " suffix set to " + suffix);
+            					}
+        					}
+    						// first save the user
+    						lpapi.getStorage().saveUser(user).join();
+    	                    lpapi.cleanupUser(user);
+        				}
+	                	else {
+	                		logger.info("User " + key + " not found");
+	                	}
                 	}
                 }
             	users.delete();
