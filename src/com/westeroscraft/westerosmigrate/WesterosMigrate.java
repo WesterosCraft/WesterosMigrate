@@ -5,8 +5,11 @@ import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.Reader;
+import java.security.acl.Group;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
@@ -27,6 +30,10 @@ import org.yaml.snakeyaml.nodes.Node;
 import io.github.nucleuspowered.nucleus.api.NucleusAPI;
 import io.github.nucleuspowered.nucleus.api.nucleusdata.Warp;
 import io.github.nucleuspowered.nucleus.api.service.NucleusWarpService;
+import me.lucko.luckperms.LuckPerms;
+import me.lucko.luckperms.api.LuckPermsApi;
+import me.lucko.luckperms.api.User;
+import me.lucko.luckperms.exceptions.ObjectAlreadyHasException;
 
 import com.flowpowered.math.vector.Vector3d;
 import com.google.inject.Inject;
@@ -36,12 +43,25 @@ import com.google.inject.Inject;
 		version = "0.1", 
 		description = "Migration aid for 1.7.10 to 1.11.2 migration", 
 		authors = {"mikeprimm"},
-		dependencies = { @Dependency(id = "nucleus") } )
+		dependencies = { @Dependency(id = "nucleus"), @Dependency(id = "luckperms") } )
 public class WesterosMigrate {
 
 	@Inject private Logger logger;
 	@Inject private PluginContainer plugin;
 	@Inject @ConfigDir(sharedRoot = false) private File configDir;
+
+	private Map<String, String> grpidmap = new HashMap<String, String>();
+	
+	public WesterosMigrate() {
+		grpidmap.put("NoBuild", "default");
+		grpidmap.put("NewBuilder", "newbuilder");
+		grpidmap.put("Builder", "builder");
+		grpidmap.put("Editor", "editor");
+		grpidmap.put("EditorLite", "editorlite");
+		grpidmap.put("Moderator", "moderator");
+		grpidmap.put("Administrator", "administrator");
+		grpidmap.put("Coder", "coder");
+	}
 	
 	public Logger getLogger(){
 		return logger;
@@ -110,7 +130,63 @@ public class WesterosMigrate {
                 }
             }
         }
+        LuckPermsApi lpapi = LuckPerms.getApi();
         
+        logger.info("Migrate users");;
+        File users = new File(configDir, "users.yml");
+        if ((lpapi != null) && (users.isFile())) {
+            Yaml yaml = new Yaml();
+            try {
+                Reader rdr = new FileReader(users);
+                Map<String, Object> vals = (Map<String, Object>) yaml.load(rdr);
+                rdr.close();
+                Map<String, Object> usrs = (Map<String, Object>) vals.get("users");
+                for (String key : usrs.keySet()) {
+                	Map<String, Object> uobj = (Map<String, Object>) usrs.get(key);
+                	String groupname = (String) uobj.get("group");
+                	String lastname = (String) uobj.get("lastname");
+                	String prefix = null;
+                	String suffix = null;
+                	Map<String, Object> info = (Map<String, Object>) uobj.get("info");
+                	if (info != null) {
+                		prefix = (String) info.get("prefix");
+                		suffix = (String) info.get("suffix");
+                	}
+                	User usr;
+                	if (lastname != null) {
+                		lpapi.getStorage().loadUser(UUID.fromString(key)).join();
+                		usr =  lpapi.getUser(UUID.fromString(key));
+                	}
+                	else {
+                		UUID uid = lpapi.getStorage().getUUID(key).join();
+                		lpapi.getStorage().loadUser(uid).join();
+                		usr =  lpapi.getUser(uid);
+                	}
+                	if (usr != null) {
+                		if (groupname != null) {
+                			String ngroupname = grpidmap.get(groupname);
+                			if (ngroupname != null) {
+                				me.lucko.luckperms.api.Group g = lpapi.getGroup(ngroupname);
+                				usr.addGroup(g);
+                				usr.setPrimaryGroup(ngroupname);
+                				logger.info("User " + key + " set to group " + ngroupname);
+                			}
+                			else {
+                				logger.info("Error: unknown group " + groupname);
+                			}
+                		}
+                	}
+                	else {
+                		logger.info("User " + key + " not found");
+                	}
+                }
+            	users.delete();
+            } catch (IOException iox) {
+                logger.info("Error processing " + users, iox);
+            } catch (ObjectAlreadyHasException e1) {
+                logger.info("Error processing user", e1);
+			}
+        }
     }
 }
 	

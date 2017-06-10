@@ -46,18 +46,28 @@
   		<id>nucleus</id>
   		<url>http://repo.drnaylor.co.uk/artifactory/minecraft/</url>
   	</repository>
+  	<repository>
+  		<id>LuckPers</id>
+  		<url>https://repo.lucko.me/</url>
+  	</repository>
   </repositories>
   
   <dependencies>
   	<dependency>
   		<groupId>org.spongepowered</groupId>
   		<artifactId>spongeapi</artifactId>
-  		<version>LATEST</version>
+  		<version>6.0.0</version>
   	</dependency>
   	<dependency>
   		<groupId>io.github.nucleuspowered</groupId>
   		<artifactId>nucleus-api</artifactId>
   		<version>0.29.1-S6.0</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>me.lucko.luckperms</groupId>
+  		<artifactId>luckperms-api</artifactId>
+  		<version>3.2</version>
+  		<scope>provided</scope>
   	</dependency>
   </dependencies>
   
