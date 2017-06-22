@@ -35,6 +35,7 @@ import me.lucko.luckperms.api.LuckPermsApi;
 import me.lucko.luckperms.api.Node.Builder;
 import me.lucko.luckperms.api.User;
 import me.lucko.luckperms.exceptions.ObjectAlreadyHasException;
+import me.lucko.luckperms.exceptions.ObjectLacksException;
 
 import com.flowpowered.math.vector.Vector3d;
 import com.google.inject.Inject;
@@ -167,9 +168,20 @@ public class WesterosMigrate {
         			if (ngroupname != null) {
         				if (lpapi.getStorage().loadUser(uuid, "null").join().booleanValue()) {
         					User user = lpapi.getUser(uuid);
+        					me.lucko.luckperms.api.Group g;
+        					me.lucko.luckperms.api.Node n;
+        					// Unset groups
+        					for (String gn : user.getGroupNames()) {
+            					g = lpapi.getGroup(gn);
+            					n = lpapi.getNodeFactory().makeGroupNode(g).build();
+            					try {
+									user.unsetPermission(n);
+								} catch (ObjectLacksException e1) {
+								}
+        					}
         					// Build permission node for group
-        					me.lucko.luckperms.api.Group g = lpapi.getGroup(ngroupname);
-        					me.lucko.luckperms.api.Node n = lpapi.getNodeFactory().makeGroupNode(g).build();
+        					g = lpapi.getGroup(ngroupname);
+        					n = lpapi.getNodeFactory().makeGroupNode(g).build();
         					// Set the permission, and return true if the user didn't already have it set.
         					if (user.hasPermission(n).asBoolean() == false) {
         						user.setPermission(n); 
