@@ -1,9 +1,11 @@
 package com.westeroscraft.westerosmigrate;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.security.acl.Group;
 import java.util.HashMap;
@@ -11,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.apache.commons.lang3.CharSet;
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.config.ConfigDir;
@@ -38,6 +41,7 @@ import me.lucko.luckperms.exceptions.ObjectAlreadyHasException;
 import me.lucko.luckperms.exceptions.ObjectLacksException;
 
 import com.flowpowered.math.vector.Vector3d;
+import com.google.common.base.Charsets;
 import com.google.inject.Inject;
 
 @Plugin(id = "westerosmigrate", 
@@ -139,7 +143,7 @@ public class WesterosMigrate {
         if ((lpapi != null) && (users.isFile())) {
             Yaml yaml = new Yaml();
             try {
-                Reader rdr = new FileReader(users);
+                Reader rdr = new InputStreamReader(new FileInputStream(users), Charsets.UTF_8);
                 Map<String, Object> vals = (Map<String, Object>) yaml.load(rdr);
                 rdr.close();
                 Map<String, Object> usrs = (Map<String, Object>) vals.get("users");
