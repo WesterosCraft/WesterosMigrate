@@ -31,11 +31,10 @@ import io.github.nucleuspowered.nucleus.api.NucleusAPI;
 import io.github.nucleuspowered.nucleus.api.nucleusdata.Warp;
 import io.github.nucleuspowered.nucleus.api.service.NucleusWarpService;
 import me.lucko.luckperms.LuckPerms;
+import me.lucko.luckperms.api.LocalizedNode;
 import me.lucko.luckperms.api.LuckPermsApi;
 import me.lucko.luckperms.api.Node.Builder;
 import me.lucko.luckperms.api.User;
-import me.lucko.luckperms.exceptions.ObjectAlreadyHasException;
-import me.lucko.luckperms.exceptions.ObjectLacksException;
 
 import com.flowpowered.math.vector.Vector3d;
 import com.google.inject.Inject;
@@ -171,13 +170,11 @@ public class WesterosMigrate {
         					me.lucko.luckperms.api.Group g;
         					me.lucko.luckperms.api.Node n;
         					// Unset groups
-        					for (String gn : user.getGroupNames()) {
-            					g = lpapi.getGroup(gn);
+        					for (LocalizedNode gn : user.getAllNodes()) {
+        					    if (gn.isGroupNode() == false) continue;
+            					g = lpapi.getGroup(gn.getGroupName());
             					n = lpapi.getNodeFactory().makeGroupNode(g).build();
-            					try {
-									user.unsetPermission(n);
-								} catch (ObjectLacksException e1) {
-								}
+								user.unsetPermission(n);
         					}
         					// Build permission node for group
         					g = lpapi.getGroup(ngroupname);
@@ -217,8 +214,6 @@ public class WesterosMigrate {
             	users.delete();
             } catch (IOException iox) {
                 logger.info("Error processing " + users, iox);
-            } catch (ObjectAlreadyHasException e1) {
-                logger.info("Error processing user", e1);
 			}
         }
     }

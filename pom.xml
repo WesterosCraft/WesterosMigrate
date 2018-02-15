@@ -2,7 +2,6 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.westeroscraft</groupId>
   <artifactId>WesterosMigrate</artifactId>
-  <version>ALPHA</version>
   <name>WesterosCraft Migration</name>
   
   <properties>
@@ -17,7 +16,6 @@
   
   <build>
   	<defaultGoal>package</defaultGoal>
-    <finalName>WesterosMigrate</finalName>
     <sourceDirectory>src</sourceDirectory>
     <resources>
         <resource>
@@ -66,10 +64,11 @@
   	<dependency>
   		<groupId>me.lucko.luckperms</groupId>
   		<artifactId>luckperms-api</artifactId>
-  		<version>3.2</version>
+  		<version>4.0</version>
   		<scope>provided</scope>
   	</dependency>
   </dependencies>
   
   <description>Migration tool for WesterosCraft config</description>
+  <version>0.2</version>
 </project>
