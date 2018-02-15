@@ -1,22 +1,23 @@
 package com.westeroscraft.westerosmigrate;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
-import java.security.acl.Group;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.config.ConfigDir;
 import org.spongepowered.api.event.Listener;
-import org.spongepowered.api.event.game.state.GameLoadCompleteEvent;
-import org.spongepowered.api.event.game.state.GamePostInitializationEvent;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
 import org.spongepowered.api.event.game.state.GameStartedServerEvent;
 import org.spongepowered.api.plugin.Dependency;
@@ -25,18 +26,17 @@ import org.spongepowered.api.plugin.PluginContainer;
 import org.spongepowered.api.world.Location;
 import org.spongepowered.api.world.World;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.nodes.Node;
 
 import io.github.nucleuspowered.nucleus.api.NucleusAPI;
-import io.github.nucleuspowered.nucleus.api.nucleusdata.Warp;
 import io.github.nucleuspowered.nucleus.api.service.NucleusWarpService;
 import me.lucko.luckperms.LuckPerms;
 import me.lucko.luckperms.api.LocalizedNode;
 import me.lucko.luckperms.api.LuckPermsApi;
-import me.lucko.luckperms.api.Node.Builder;
+import me.lucko.luckperms.api.Node;
 import me.lucko.luckperms.api.User;
 
 import com.flowpowered.math.vector.Vector3d;
+import com.google.common.base.Charsets;
 import com.google.inject.Inject;
 
 @Plugin(id = "westerosmigrate", 
@@ -138,7 +138,7 @@ public class WesterosMigrate {
         if ((lpapi != null) && (users.isFile())) {
             Yaml yaml = new Yaml();
             try {
-                Reader rdr = new FileReader(users);
+                Reader rdr = new InputStreamReader(new FileInputStream(users), Charsets.UTF_8);
                 Map<String, Object> vals = (Map<String, Object>) yaml.load(rdr);
                 rdr.close();
                 Map<String, Object> usrs = (Map<String, Object>) vals.get("users");
@@ -188,19 +188,32 @@ public class WesterosMigrate {
         						user.setPrimaryGroup(ngroupname);
                 				logger.info("User " + user.getFriendlyName() + " set to primary group " + ngroupname);
         					}
+							user.clearMatching(new Predicate<Node>() {
+								public boolean test(Node t) {
+									Entry<Integer, String> pfx;
+									if (t.isPrefix()) {
+										pfx = t.getPrefix();
+										if ((pfx != null) && (pfx.getKey().intValue() == 200)) {
+											return true;
+										}
+									}
+									if (t.isSuffix()) {
+										pfx = t.getSuffix();
+										if ((pfx != null) && (pfx.getKey().intValue() == 200)) {
+											return true;
+										}
+									}
+									return false;
+								} });
         					if (prefix != null) {
             					n = lpapi.getNodeFactory().makePrefixNode(200, prefix).build();
-            					if (user.hasPermission(n).asBoolean() == false) {
-            						user.setPermission(n);
-                    				logger.info("User " + user.getFriendlyName() + " prefix set to " + prefix);
-            					}
+        						user.setPermission(n);
+                				logger.info("User " + user.getFriendlyName() + " prefix set to " + prefix);
         					}
         					if (suffix != null) {
             					n = lpapi.getNodeFactory().makePrefixNode(200, suffix).build();
-            					if (user.hasPermission(n).asBoolean() == false) {
-            						user.setPermission(n);
-                    				logger.info("User " + user.getFriendlyName() + " suffix set to " + suffix);
-            					}
+        						user.setPermission(n);
+                				logger.info("User " + user.getFriendlyName() + " suffix set to " + suffix);
         					}
     						// first save the user
     						lpapi.getStorage().saveUser(user).join();
