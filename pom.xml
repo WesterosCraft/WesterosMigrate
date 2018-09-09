@@ -54,7 +54,7 @@
   	<dependency>
   		<groupId>org.spongepowered</groupId>
   		<artifactId>spongeapi</artifactId>
-  		<version>6.0.0</version>
+  		<version>7.1.0</version>
   	</dependency>
   	<dependency>
   		<groupId>io.github.nucleuspowered</groupId>
@@ -70,5 +70,5 @@
   </dependencies>
   
   <description>Migration tool for WesterosCraft config</description>
-  <version>0.2</version>
+  <version>0.3</version>
 </project>
